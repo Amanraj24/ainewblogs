@@ -4,10 +4,10 @@ import { RowDataPacket } from 'mysql2';
 
 export async function GET(
     request: Request,
-    { params }: { params: { slug: string } }
+    { params }: { params: Promise<{ slug: string }> }
 ) {
     try {
-        const slug = params.slug;
+        const { slug } = await params;
 
         const [rows] = await pool.query<RowDataPacket[]>(
             'SELECT * FROM posts WHERE slug = ? AND status IN (?, ?)',
