@@ -5,8 +5,193 @@ import Button from './Button';
 import { Check, Copy, RefreshCw, ArrowLeft, Tag, Clock, Calendar, Sparkles, Upload, Wand2, Image as ImageIcon, CalendarClock, Globe, HelpCircle, TrendingUp } from 'lucide-react';
 import MarkdownRenderer from './MarkdownRenderer';
 import dynamic from 'next/dynamic';
-const SimpleMDE = dynamic(() => import("react-simplemde-editor"), { ssr: false });
-import "easymde/dist/easymde.min.css";
+import "@/styles/lexical.css";
+
+// Lexical Imports
+import { LexicalComposer } from "@lexical/react/LexicalComposer";
+import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
+import { ContentEditable } from "@lexical/react/LexicalContentEditable";
+import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
+import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
+import { ListPlugin } from "@lexical/react/LexicalListPlugin";
+import { CheckListPlugin } from "@lexical/react/LexicalCheckListPlugin";
+import { LinkPlugin } from "@lexical/react/LexicalLinkPlugin";
+import { MarkdownShortcutPlugin } from "@lexical/react/LexicalMarkdownShortcutPlugin";
+import { TRANSFORMERS } from "@lexical/markdown";
+import { HeadingNode, QuoteNode } from "@lexical/rich-text";
+import { TableCellNode, TableNode, TableRowNode } from "@lexical/table";
+import { ListItemNode, ListNode } from "@lexical/list";
+import { CodeHighlightNode, CodeNode } from "@lexical/code";
+import { AutoLinkNode, LinkNode } from "@lexical/link";
+import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
+import { $convertFromMarkdownString, $convertToMarkdownString } from "@lexical/markdown";
+import { $getRoot, $getSelection, SELECTION_CHANGE_COMMAND, FORMAT_TEXT_COMMAND, FORMAT_ELEMENT_COMMAND, UNDO_COMMAND, REDO_COMMAND } from "lexical";
+import { Bold, Italic, Underline, List, ListOrdered, Quote as QuoteIcon, Undo, Redo, Heading1, Heading2, Link as LinkIcon } from 'lucide-react';
+
+const theme = {
+  ltr: "ltr",
+  rtl: "rtl",
+  placeholder: "lexical-placeholder",
+  paragraph: "lexical-paragraph",
+  quote: "lexical-quote",
+  heading: {
+    h1: "lexical-h1",
+    h2: "lexical-h2",
+    h3: "lexical-h3",
+  },
+  list: {
+    nested: {
+      listitem: "lexical-nested-listitem",
+    },
+    ol: "lexical-ol",
+    ul: "lexical-ul",
+    listitem: "lexical-listitem",
+  },
+  image: "lexical-image",
+  link: "lexical-link",
+  text: {
+    bold: "lexical-bold",
+    italic: "lexical-italic",
+    overflowed: "lexical-overflowed",
+    hashtag: "lexical-hashtag",
+    underline: "lexical-underline",
+    strikethrough: "lexical-strikethrough",
+    underlineStrikethrough: "lexical-underlineStrikethrough",
+    code: "lexical-code",
+  },
+  code: "lexical-code",
+  codeHighlight: {
+    atrule: "lexical-tokenAtrule",
+    attr: "lexical-tokenAttr",
+    boolean: "lexical-tokenBoolean",
+    builtin: "lexical-tokenBuiltin",
+    cdata: "lexical-tokenCdata",
+    char: "lexical-tokenChar",
+    class: "lexical-tokenClass",
+    "class-name": "lexical-tokenClassName",
+    comment: "lexical-tokenComment",
+    constant: "lexical-tokenConstant",
+    deleted: "lexical-tokenDeleted",
+    doctype: "lexical-tokenDoctype",
+    entity: "lexical-tokenEntity",
+    function: "lexical-tokenFunction",
+    important: "lexical-tokenImportant",
+    inserted: "lexical-tokenInserted",
+    keyword: "lexical-tokenKeyword",
+    namespace: "lexical-tokenNamespace",
+    number: "lexical-tokenNumber",
+    operator: "lexical-tokenOperator",
+    prolog: "lexical-tokenProlog",
+    property: "lexical-tokenProperty",
+    punctuation: "lexical-tokenPunctuation",
+    regex: "lexical-tokenRegex",
+    selector: "lexical-tokenSelector",
+    string: "lexical-tokenString",
+    symbol: "lexical-tokenSymbol",
+    tag: "lexical-tokenTag",
+    url: "lexical-tokenUrl",
+    variable: "lexical-tokenVariable",
+  },
+};
+
+// Toolbar Component
+const Toolbar = () => {
+  const [editor] = useLexicalComposerContext();
+  const [isBold, setIsBold] = useState(false);
+  const [isItalic, setIsItalic] = useState(false);
+  const [isUnderline, setIsUnderline] = useState(false);
+
+  const updateToolbar = () => {
+    const selection = $getSelection();
+    if (selection && (selection as any).hasFormat) {
+      setIsBold((selection as any).hasFormat("bold"));
+      setIsItalic((selection as any).hasFormat("italic"));
+      setIsUnderline((selection as any).hasFormat("underline"));
+    }
+  };
+
+  useEffect(() => {
+    return editor.registerCommand(
+      SELECTION_CHANGE_COMMAND,
+      () => {
+        updateToolbar();
+        return false;
+      },
+      1
+    );
+  }, [editor]);
+
+  return (
+    <div className="lexical-toolbar">
+      <button onClick={() => editor.dispatchCommand(UNDO_COMMAND, undefined)} className="toolbar-item" title="Undo"><Undo size={16} /></button>
+      <button onClick={() => editor.dispatchCommand(REDO_COMMAND, undefined)} className="toolbar-item" title="Redo"><Redo size={16} /></button>
+      <div className="toolbar-divider" />
+      <button onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, "bold")} className={`toolbar-item ${isBold ? 'active' : ''}`} title="Bold"><Bold size={16} /></button>
+      <button onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, "italic")} className={`toolbar-item ${isItalic ? 'active' : ''}`} title="Italic"><Italic size={16} /></button>
+      <button onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, "underline")} className={`toolbar-item ${isUnderline ? 'active' : ''}`} title="Underline"><Underline size={16} /></button>
+      <div className="toolbar-divider" />
+      <button onClick={() => {
+        editor.update(() => {
+          const selection = $getSelection();
+          if (selection) {
+            import("@lexical/rich-text").then(({ $createHeadingNode }) => {
+              (selection as any).insertNodes([$createHeadingNode("h1")]);
+            });
+          }
+        });
+      }} className="toolbar-item" title="Heading 1"><Heading1 size={16} /></button>
+      <button onClick={() => {
+        editor.update(() => {
+          const selection = $getSelection();
+          if (selection) {
+            import("@lexical/rich-text").then(({ $createHeadingNode }) => {
+              (selection as any).insertNodes([$createHeadingNode("h2")]);
+            });
+          }
+        });
+      }} className="toolbar-item" title="Heading 2"><Heading2 size={16} /></button>
+      <div className="toolbar-divider" />
+      <button onClick={() => {
+        editor.update(() => {
+          const selection = $getSelection();
+          if (selection) {
+            import("@lexical/list").then(({ $createListNode }) => {
+              (selection as any).insertNodes([$createListNode("bullet")]);
+            });
+          }
+        });
+      }} className="toolbar-item" title="Bullet List"><List size={16} /></button>
+      <button onClick={() => {
+        editor.update(() => {
+          const selection = $getSelection();
+          if (selection) {
+            import("@lexical/list").then(({ $createListNode }) => {
+              (selection as any).insertNodes([$createListNode("number")]);
+            });
+          }
+        });
+      }} className="toolbar-item" title="Ordered List"><ListOrdered size={16} /></button>
+    </div>
+  );
+};
+
+// Markdown Initializer Plugin
+const MarkdownInitialValuePlugin = ({ value }: { value: string }) => {
+  const [editor] = useLexicalComposerContext();
+  const hasInitialized = useRef(false);
+
+  useEffect(() => {
+    if (!hasInitialized.current && value) {
+      editor.update(() => {
+        $convertFromMarkdownString(value, TRANSFORMERS);
+      });
+      hasInitialized.current = true;
+    }
+  }, [value, editor]);
+
+  return null;
+};
 
 interface PostEditorProps {
   topic: string;
@@ -345,23 +530,50 @@ const PostEditor: React.FC<PostEditorProps> = ({ topic, tone, initialPost, onPub
                 </div>
               </div>
 
-              {/* Editable Content */}
-              <div className="prose max-w-none">
-                <SimpleMDE
-                  value={postData?.content || ''}
-                  onChange={handleContentChange}
-                  options={{
-                    spellChecker: false,
-                    placeholder: "Write your masterpiece...",
-                    status: false,
-                    autosave: {
-                      enabled: false,
-                      uniqueId: "post_content_" + (postData?.id || "draft"),
-                      delay: 1000,
-                    },
+              {/* Lexical Editor Content */}
+              <div className="lexical-container">
+                <LexicalComposer
+                  initialConfig={{
+                    namespace: "PostEditor",
+                    theme,
+                    onError: (error) => console.error(error),
+                    nodes: [
+                      HeadingNode,
+                      ListNode,
+                      ListItemNode,
+                      QuoteNode,
+                      CodeNode,
+                      CodeHighlightNode,
+                      TableNode,
+                      TableCellNode,
+                      TableRowNode,
+                      AutoLinkNode,
+                      LinkNode,
+                    ],
                   }}
-                  className="rounded-lg overflow-hidden"
-                />
+                >
+                  <Toolbar />
+                  <div className="lexical-inner">
+                    <RichTextPlugin
+                      contentEditable={<ContentEditable className="lexical-input" />}
+                      placeholder={<div className="lexical-placeholder">Write your masterpiece...</div>}
+                      ErrorBoundary={LexicalErrorBoundary}
+                    />
+                    <HistoryPlugin />
+                    <ListPlugin />
+                    <LinkPlugin />
+                    <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
+                    <MarkdownInitialValuePlugin value={postData?.content || ''} />
+                    <OnChangePlugin
+                      onChange={(editorState) => {
+                        editorState.read(() => {
+                          const markdown = $convertToMarkdownString(TRANSFORMERS);
+                          handleContentChange(markdown);
+                        });
+                      }}
+                    />
+                  </div>
+                </LexicalComposer>
               </div>
 
               {/* Preview */}

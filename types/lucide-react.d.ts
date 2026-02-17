@@ -48,6 +48,17 @@ declare module 'lucide-react' {
     export const TrendingUp: Icon;
     export const Upload: Icon;
     export const User: Icon;
+    export const Bold: Icon;
+    export const Italic: Icon;
+    export const Underline: Icon;
+    export const List: Icon;
+    export const ListOrdered: Icon;
+    export const Quote: Icon;
+    export const Undo: Icon;
+    export const Redo: Icon;
+    export const Heading1: Icon;
+    export const Heading2: Icon;
+    export const Link: Icon;
     export const Wand2: Icon;
     export const Zap: Icon;
 }
